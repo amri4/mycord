@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "mycord"
 version = "1.0.0"
 authors = [
-    { name = "Your Name", email = "your.email@example.com" }
+    { name = "amri4", email = "amri.supreme123@gmail.com" }
 ]
 description = "A minimalist, dynamic wrapper framework for discord.py with built-in database management."
 readme = "README.md"
