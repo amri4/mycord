@@ -27,6 +27,6 @@ jobs:
       run: python -m build
       
     - name: Publish package distributions to PyPI
-      uses: pypa/github-action-pypi-publish@v1.9.0
+      uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.PYPI_API_TOKEN }}
