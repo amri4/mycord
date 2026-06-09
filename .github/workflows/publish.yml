@@ -8,7 +8,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     
-    # 🌟 ADD THESE TWO LINES HERE 🌟
     permissions:
       id-token: write
       contents: read
@@ -31,4 +30,4 @@ jobs:
         run: python -m build
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release
+        uses: pypa/gh-action-pypi-publish@release/v1
