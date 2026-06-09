@@ -2,7 +2,7 @@
 
 A minimalist, dynamic wrapper framework for [discord.py](https://github.com/Rapptz/discord.py) with built-in database management.
 
-**mycord** simplifies Discord bot development by providing a lightweight abstraction layer over discord.py — featuring automatic cog loading, an integrated SQLite database, and utility helpers. Everything is accessible through a single `import mycord`.
+**mycord** simplifies Discord bot development through a single import — `import mycord`. No scattered imports, no boilerplate. Everything lives under the `mycord` namespace.
 
 ---
 
@@ -11,15 +11,17 @@ A minimalist, dynamic wrapper framework for [discord.py](https://github.com/Rapp
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [API Reference](#api-reference)
-  - [Bot](#bot)
-  - [Cog](#cog)
-  - [DB](#db)
-  - [Tools](#tools)
+  - [mycord.Bot](#mycordbot)
+  - [mycord.Cog](#mycordcog)
+  - [mycord.DB](#mycorddb)
+  - [mycord.Tools](#mycordtools)
+  - [mycord.os](#mycordos)
 - [Examples](#examples)
   - [Minimal bot](#minimal-bot)
   - [Bot with cogs](#bot-with-cogs)
   - [Bot with database](#bot-with-database)
   - [Cog file example](#cog-file-example)
+  - [Moderation cog](#moderation-cog)
 - [Requirements](#requirements)
 
 ---
@@ -37,14 +39,6 @@ git clone https://github.com/amri4/mycord.git
 cd mycord
 pip install -e .
 ```
-
-### Dependencies
-
-| Package | Version |
-|---|---|
-| `discord.py` | `>=2.0.0` |
-| `python-dotenv` | `>=1.0.0` |
-| Python | `>=3.8` |
 
 ---
 
@@ -72,23 +66,23 @@ async def on_ready():
 bot.start(TOKEN)
 ```
 
-That's it. No `asyncio.run`, no extra imports, no boilerplate.
+That's it. One import. No `asyncio`, no scattered `from discord import ...`.
 
 ---
 
 ## API Reference
 
-### Bot
+### `mycord.Bot`
 
 ```python
 bot = mycord.Bot(command_prefix, db_name="mycord_data.db", **options)
 ```
 
 The main bot class. Extends `discord.ext.commands.Bot` with:
-- Automatic `.env` loading
-- Integrated SQLite database (accessible directly on the bot)
+- Automatic `.env` loading via `python-dotenv`
+- Integrated SQLite database accessible directly on the bot instance
 - Help command removed by default
-- Synchronous `start()` — no event loop boilerplate needed
+- Synchronous `start()` — no event loop setup needed
 
 #### Parameters
 
@@ -110,45 +104,39 @@ Start the bot. Synchronous and blocking — no `asyncio` needed.
 bot.start(TOKEN)
 ```
 
-| Parameter | Type | Description |
-|---|---|---|
-| `token` | `str` | Your Discord bot token |
-
 ---
 
 ##### `bot.run_bot(token_env_name="TOKEN")`
 
-Start the bot by reading the token from a `.env` variable.
+Start the bot by reading the token directly from `.env`.
 
 ```python
-bot.run_bot()                        # reads TOKEN from .env
-bot.run_bot(token_env_name="MY_BOT_TOKEN")  # reads MY_BOT_TOKEN from .env
+bot.run_bot()                              # reads TOKEN
+bot.run_bot(token_env_name="MY_TOKEN")     # reads MY_TOKEN
 ```
 
 ---
 
 ##### `await bot.autoload_cogs(directory="./cogs", log="✅️{cog} cog loaded!")`
 
-Scan a directory and load every `.py` file as a cog. Creates the directory automatically if it doesn't exist.
+Scan a folder and load every `.py` file as a cog. Creates the folder if it doesn't exist. Files starting with `_` are skipped.
 
 ```python
 @bot.event
 async def on_ready():
     await bot.autoload_cogs()
-    # or with a custom message:
+    # custom message:
     await bot.autoload_cogs("./cogs", log="{cog} is ready 🚀")
-    # or with a callback:
-    await bot.autoload_cogs("./cogs", log=lambda cog: print(f"[{cog}] loaded"))
-    # or silent:
+    # callback:
+    await bot.autoload_cogs("./cogs", log=lambda cog: print(f"[{cog}] online"))
+    # silent:
     await bot.autoload_cogs("./cogs", log=None)
 ```
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `directory` | `str` | `"./cogs"` | Path to the cogs folder |
-| `log` | `str \| callable \| None` | `"✅️{cog} cog loaded!"` | Log message. Use `{cog}` as a placeholder for the cog name, pass a callable, or `None` for silence |
-
-Files starting with `_` are ignored (useful for `__init__.py` or helper files).
+| `log` | `str \| callable \| None` | `"✅️{cog} cog loaded!"` | Use `{cog}` as a placeholder, pass a callable, or `None` for silence |
 
 ---
 
@@ -163,9 +151,9 @@ prefix = bot.get_env("PREFIX", default="!")
 
 ---
 
-#### Database Proxy
+##### Database proxy
 
-All `DB` methods are available directly on the bot instance:
+All `mycord.DB` methods are available directly on the bot instance:
 
 ```python
 bot.create_table("users", "id INTEGER PRIMARY KEY, name TEXT")
@@ -173,18 +161,18 @@ bot.insert("users", "id, name", (1, "Alice"))
 user = bot.fetchone("users", "id = ?", (1,))
 ```
 
-See the [DB](#db) section for the full method list.
+See [`mycord.DB`](#mycorddb) for the full method list.
 
 ---
 
-### Cog
+### `mycord.Cog`
 
-A base class for Discord cogs. Automatically injects all public members of `discord` and `discord.ext.commands` into your cog's module — so you never need extra imports inside cog files.
+Base class for Discord cogs. Automatically injects all public members of `discord` and `discord.ext.commands` into the cog's module — so `commands`, `Embed`, `Member`, `app_commands`, and every other discord.py symbol are available inside the file without any extra imports.
 
 ```python
-from mycord import Cog
+import mycord
 
-class MyCog(Cog):
+class General(mycord.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -193,26 +181,24 @@ class MyCog(Cog):
         await ctx.send(f"Pong! {round(self.bot.latency * 1000)}ms")
 
 async def setup(bot):
-    await bot.add_cog(MyCog(bot))
+    await bot.add_cog(General(bot))
 ```
 
-`commands`, `discord`, `Embed`, `Member`, `app_commands`, and every other public discord.py symbol are available without any import inside the file.
+> `commands`, `Member`, `Embed`, `app_commands`, etc. are all injected automatically. No `from discord.ext import commands` needed.
 
 ---
 
-### DB
+### `mycord.DB`
 
 A simple SQLite wrapper for persistent data storage.
 
 ```python
-from mycord import DB
-
-db = DB("mybot.db")
+db = mycord.DB("mybot.db")
 ```
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `db_name` | `str` | `"mycord_data.db"` | SQLite file to create/connect to |
+| `db_name` | `str` | `"mycord_data.db"` | SQLite file to create/open |
 
 #### Methods
 
@@ -240,7 +226,7 @@ db.insert("users", "id, name, points", (1, "Alice", 100))
 
 ##### `db.insert_replace(table, columns, values)`
 
-Insert a row, replacing the existing one on unique constraint conflict.
+Insert a row, replacing the existing one on a unique constraint conflict.
 
 ```python
 db.insert_replace("users", "id, name, points", (1, "Alice", 200))
@@ -253,8 +239,8 @@ db.insert_replace("users", "id, name, points", (1, "Alice", 200))
 Fetch a single matching row. Returns a `tuple` or `None`.
 
 ```python
-user = db.fetchone("users")                              # first row
-user = db.fetchone("users", "id = ?", (1,))              # by id
+user = db.fetchone("users")                                          # first row
+user = db.fetchone("users", "id = ?", (1,))                          # by id
 user = db.fetchone("users", "name = ? AND points > ?", ("Alice", 50))
 ```
 
@@ -305,51 +291,52 @@ if db.exists("users", "id = ?", (1,)):
 
 Close the database connection. Called automatically when the bot shuts down.
 
-```python
-db.close()
-```
+---
+
+### `mycord.Tools`
+
+Static utility helpers.
 
 ---
 
-### Tools
-
-A collection of static utility helpers.
-
-```python
-from mycord import Tools
-# or via bot:
-# bot.tools.chance(50)
-```
-
----
-
-##### `Tools.chance(percentage)`
+##### `mycord.Tools.chance(percentage)`
 
 Returns `True` with the given probability.
 
 ```python
-if Tools.chance(25):
-    print("1 in 4 chance hit!")
+if mycord.Tools.chance(25):
+    print("1 in 4 chance!")
 ```
 
 | Parameter | Type | Description |
 |---|---|---|
-| `percentage` | `float` | Probability from `0` to `100` |
+| `percentage` | `float` | Probability `0`–`100` |
 
 **Returns:** `bool`
 
 ---
 
-##### `Tools.timestamp()`
+##### `mycord.Tools.timestamp()`
 
 Returns the current time as a formatted string.
 
 ```python
-now = Tools.timestamp()
+now = mycord.Tools.timestamp()
 print(now)  # "2024-06-09 14:30:45"
 ```
 
-**Returns:** `str` — formatted as `"YYYY-MM-DD HH:MM:SS"`
+**Returns:** `str` — format: `"YYYY-MM-DD HH:MM:SS"`
+
+---
+
+### `mycord.os`
+
+The standard library `os` module, available directly under `mycord` after your `.env` is auto-loaded. Useful for reading tokens and config.
+
+```python
+TOKEN = mycord.os.getenv("TOKEN")
+prefix = mycord.os.getenv("PREFIX", "!")
+```
 
 ---
 
@@ -395,9 +382,9 @@ bot.start(TOKEN)
 `cogs/general.py`:
 
 ```python
-from mycord import Cog
+import mycord
 
-class General(Cog):
+class General(mycord.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -435,15 +422,14 @@ async def points(ctx):
     total = row[1] if row else 0
     await ctx.send(f"💰 You have **{total}** points.")
 
-@bot.command(name="addpoints")
+@bot.command(name="give")
 @commands.has_permissions(administrator=True)
-async def addpoints(ctx, member: mycord.Member, amount: int):
-    existing = bot.fetchone("points", "user_id = ?", (member.id,))
-    if existing:
+async def give(ctx, member: mycord.Member, amount: int):
+    if bot.exists("points", "user_id = ?", (member.id,)):
         bot.update("points", "amount = amount + ?", "user_id = ?", (amount, member.id))
     else:
         bot.insert("points", "user_id, amount", (member.id, amount))
-    await ctx.send(f"✅ Added **{amount}** points to {member.mention}.")
+    await ctx.send(f"✅ Gave **{amount}** points to {member.mention}.")
 
 bot.start(TOKEN)
 ```
@@ -452,12 +438,42 @@ bot.start(TOKEN)
 
 ### Cog file example
 
+`cogs/general.py`:
+
+```python
+import mycord
+
+class General(mycord.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.command(name="ping")
+    async def ping(self, ctx):
+        await ctx.send(f"🏓 `{round(self.bot.latency * 1000)}ms`")
+
+    @commands.command(name="info")
+    async def info(self, ctx, member: Member = None):
+        member = member or ctx.author
+        embed = Embed(title=str(member), color=member.color)
+        embed.set_thumbnail(url=member.display_avatar.url)
+        embed.add_field(name="ID", value=member.id)
+        embed.add_field(name="Joined", value=member.joined_at.strftime("%Y-%m-%d"))
+        await ctx.send(embed=embed)
+
+async def setup(bot):
+    await bot.add_cog(General(bot))
+```
+
+---
+
+### Moderation cog
+
 `cogs/moderation.py`:
 
 ```python
-from mycord import Cog
+import mycord
 
-class Moderation(Cog):
+class Moderation(mycord.Cog):
     def __init__(self, bot):
         self.bot = bot
 
