@@ -1,33 +1,36 @@
 # mycord
 
-A minimalist, dynamic wrapper framework for discord.py with built-in database management.
+A minimalist, dynamic wrapper framework for [discord.py](https://github.com/Rapptz/discord.py) with built-in database management.
 
-**mycord** simplifies Discord bot development by providing a lightweight abstraction layer over discord.py, featuring automatic cog loading, integrated SQLite database management, and utility tools.
+**mycord** simplifies Discord bot development by providing a lightweight abstraction layer over discord.py — featuring automatic cog loading, an integrated SQLite database, and utility helpers. Everything is accessible through a single `import mycord`.
+
+---
 
 ## Table of Contents
 
 - [Installation](#installation)
 - [Quick Start](#quick-start)
-- [Core Components](#core-components)
-  - [MyBot](#mybot)
-  - [DB](#db)
-  - [Cog](#cog)
-  - [Tools](#tools)
 - [API Reference](#api-reference)
+  - [Bot](#bot)
+  - [Cog](#cog)
+  - [DB](#db)
+  - [Tools](#tools)
 - [Examples](#examples)
+  - [Minimal bot](#minimal-bot)
+  - [Bot with cogs](#bot-with-cogs)
+  - [Bot with database](#bot-with-database)
+  - [Cog file example](#cog-file-example)
 - [Requirements](#requirements)
 
 ---
 
 ## Installation
 
-### Prerequisites
-- Python 3.8+
-- pip
+```bash
+pip install mycord
+```
 
-### From Source
-
-Clone the repository and install in development mode:
+### From source
 
 ```bash
 git clone https://github.com/amri4/mycord.git
@@ -36,129 +39,133 @@ pip install -e .
 ```
 
 ### Dependencies
-- `discord.py>=2.0.0` - Discord API wrapper
-- `python-dotenv>=1.0.0` - Environment variable management
+
+| Package | Version |
+|---|---|
+| `discord.py` | `>=2.0.0` |
+| `python-dotenv` | `>=1.0.0` |
+| Python | `>=3.8` |
 
 ---
 
 ## Quick Start
 
-### Basic Bot Setup
-
-Create a main bot file (e.g., `main.py`):
-
-```python
-from mycord import MyBot
-import asyncio
-
-# Initialize the bot
-bot = MyBot(command_prefix="!")
-
-@bot.event
-async def on_ready():
-    print(f"{bot.user} is now running!")
-
-async def main():
-    # Load cogs from ./cogs directory
-    await bot.autoload_cogs("./cogs")
-    await bot.start("YOUR_DISCORD_TOKEN")
-
-asyncio.run(main())
-```
-
-### Environment Setup
-
-Create a `.env` file in your project root:
+**1. Create a `.env` file:**
 
 ```
 TOKEN=your_discord_bot_token_here
 ```
 
-Or use a custom token variable name:
+**2. Create `main.py`:**
 
 ```python
-bot.run_bot(token_env_name="DISCORD_TOKEN")
+import mycord
+
+TOKEN = mycord.os.getenv("TOKEN")
+
+bot = mycord.Bot(command_prefix="!")
+
+@bot.event
+async def on_ready():
+    print(f"✅ Bot online as {bot.user}")
+
+bot.start(TOKEN)
+```
+
+That's it. No `asyncio.run`, no extra imports, no boilerplate.
+
+---
+
+## API Reference
+
+### Bot
+
+```python
+bot = mycord.Bot(command_prefix, db_name="mycord_data.db", **options)
+```
+
+The main bot class. Extends `discord.ext.commands.Bot` with:
+- Automatic `.env` loading
+- Integrated SQLite database (accessible directly on the bot)
+- Help command removed by default
+- Synchronous `start()` — no event loop boilerplate needed
+
+#### Parameters
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `command_prefix` | `str` | *required* | Command prefix, e.g. `"!"` |
+| `db_name` | `str` | `"mycord_data.db"` | SQLite database filename |
+| `**options` | | | Any extra kwargs passed to `discord.ext.commands.Bot` |
+
+#### Methods
+
+---
+
+##### `bot.start(token)`
+
+Start the bot. Synchronous and blocking — no `asyncio` needed.
+
+```python
+bot.start(TOKEN)
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `token` | `str` | Your Discord bot token |
+
+---
+
+##### `bot.run_bot(token_env_name="TOKEN")`
+
+Start the bot by reading the token from a `.env` variable.
+
+```python
+bot.run_bot()                        # reads TOKEN from .env
+bot.run_bot(token_env_name="MY_BOT_TOKEN")  # reads MY_BOT_TOKEN from .env
 ```
 
 ---
 
-## Core Components
+##### `await bot.autoload_cogs(directory="./cogs", log="✅️{cog} cog loaded!")`
 
-### MyBot
-
-The main bot class extending `discord.ext.commands.Bot` with integrated database and utilities.
-
-#### Features
-- **Automatic environment loading** - Finds and loads `.env` files automatically
-- **Integrated database** - Built-in SQLite database accessible from bot instance
-- **Dynamic cog loading** - Automatically load all Python files from a directory
-- **Database proxy** - Access database methods directly from bot instance
-- **Token management** - Flexible token retrieval from environment variables
-
-#### Constructor
+Scan a directory and load every `.py` file as a cog. Creates the directory automatically if it doesn't exist.
 
 ```python
-MyBot(command_prefix, db_name="mycord_data.db", **options)
+@bot.event
+async def on_ready():
+    await bot.autoload_cogs()
+    # or with a custom message:
+    await bot.autoload_cogs("./cogs", log="{cog} is ready 🚀")
+    # or with a callback:
+    await bot.autoload_cogs("./cogs", log=lambda cog: print(f"[{cog}] loaded"))
+    # or silent:
+    await bot.autoload_cogs("./cogs", log=None)
 ```
 
-**Parameters:**
-- `command_prefix` (str): Prefix for bot commands (e.g., "!", ".")
-- `db_name` (str): Name of SQLite database file. Default: `"mycord_data.db"`
-- `**options`: Additional keyword arguments passed to `discord.ext.commands.Bot`
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `directory` | `str` | `"./cogs"` | Path to the cogs folder |
+| `log` | `str \| callable \| None` | `"✅️{cog} cog loaded!"` | Log message. Use `{cog}` as a placeholder for the cog name, pass a callable, or `None` for silence |
 
-**Attributes:**
-- `_db` - Internal database instance
-- `tools` - Reference to the Tools utility class
+Files starting with `_` are ignored (useful for `__init__.py` or helper files).
 
-#### Methods
+---
 
-##### `autoload_cogs(directory: str = "./cogs")`
+##### `bot.get_env(key, default=None)`
 
-Automatically scans a directory and loads all Python files as Discord cogs.
-
-```python
-await bot.autoload_cogs("./cogs")
-```
-
-**Parameters:**
-- `directory` (str): Path to cogs directory. Default: `"./cogs"`
-
-**Behavior:**
-- Creates the directory if it doesn't exist
-- Loads all `.py` files (except those starting with `_`)
-- Prints success/failure messages to console
-- Continues loading even if a cog fails
-
-##### `get_env(key: str, default: str = None) -> str`
-
-Retrieve environment variables.
+Read an environment variable.
 
 ```python
 token = bot.get_env("TOKEN")
-api_key = bot.get_env("API_KEY", default="default_key")
+prefix = bot.get_env("PREFIX", default="!")
 ```
 
-**Parameters:**
-- `key` (str): Environment variable name
-- `default` (str): Default value if key not found
-
-**Returns:** Environment variable value or default
-
-##### `run_bot(token_env_name: str = "TOKEN")`
-
-Start the bot with automatic token retrieval.
-
-```python
-bot.run_bot()  # Uses TOKEN env var
-bot.run_bot(token_env_name="DISCORD_TOKEN")  # Uses DISCORD_TOKEN env var
-```
-
-**Parameters:**
-- `token_env_name` (str): Environment variable containing the token. Default: `"TOKEN"`
+---
 
 #### Database Proxy
 
-Access database methods directly from the bot:
+All `DB` methods are available directly on the bot instance:
 
 ```python
 bot.create_table("users", "id INTEGER PRIMARY KEY, name TEXT")
@@ -166,133 +173,13 @@ bot.insert("users", "id, name", (1, "Alice"))
 user = bot.fetchone("users", "id = ?", (1,))
 ```
 
----
-
-### DB
-
-A SQLite database wrapper for simple data persistence.
-
-#### Constructor
-
-```python
-DB(db_name="mycord_data.db")
-```
-
-**Parameters:**
-- `db_name` (str): SQLite database filename
-
-**Attributes:**
-- `conn` - SQLite connection object
-- `cursor` - SQLite cursor for executing queries
-
-#### Methods
-
-##### `create_table(name: str, columns: str)`
-
-Create a new table.
-
-```python
-db.create_table("users", "id INTEGER PRIMARY KEY, name TEXT, age INTEGER")
-```
-
-##### `insert(table: str, columns: str, values: tuple)`
-
-Insert a new row into a table.
-
-```python
-db.insert("users", "name, age", ("Alice", 30))
-```
-
-##### `insert_replace(table: str, columns: str, values: tuple)`
-
-Insert a row, replacing if a unique constraint conflict occurs.
-
-```python
-db.insert_replace("users", "id, name, age", (1, "Alice", 31))
-```
-
-##### `fetchone(table: str, condition: str = None, values: tuple = ())`
-
-Fetch a single row from a table.
-
-```python
-user = db.fetchone("users")
-user = db.fetchone("users", "id = ?", (1,))
-user = db.fetchone("users", "name = ? AND age > ?", ("Alice", 25))
-```
-
-**Parameters:**
-- `table` (str): Table name
-- `condition` (str): WHERE clause without "WHERE" keyword
-- `values` (tuple): Parameterized query values
-
-**Returns:** Tuple of row data or None if not found
-
-##### `fetchall(table: str)`
-
-Fetch all rows from a table.
-
-```python
-all_users = db.fetchall("users")
-```
-
-**Parameters:**
-- `table` (str): Table name
-
-**Returns:** List of tuples
-
-##### `update(table: str, set_values: str, condition: str, values: tuple)`
-
-Update rows in a table.
-
-```python
-db.update("users", "age = ?", "id = ?", (31, 1))
-```
-
-**Parameters:**
-- `table` (str): Table name
-- `set_values` (str): SET clause (e.g., "age = ?")
-- `condition` (str): WHERE clause
-- `values` (tuple): Parameterized values
-
-##### `delete(table: str, condition: str, values: tuple)`
-
-Delete rows from a table.
-
-```python
-db.delete("users", "id = ?", (1,))
-```
-
-##### `exists(table: str, condition: str, values: tuple) -> bool`
-
-Check if a row exists in a table.
-
-```python
-if db.exists("users", "id = ?", (1,)):
-    print("User exists!")
-```
-
-**Returns:** Boolean
-
-##### `close()`
-
-Close the database connection.
-
-```python
-db.close()
-```
+See the [DB](#db) section for the full method list.
 
 ---
 
 ### Cog
 
-A base class for Discord cogs with automatic module injection for easy access to discord.py and discord.ext.commands utilities.
-
-#### Overview
-
-When you create a Cog subclass, all non-private attributes from `discord` and `discord.ext.commands` are automatically injected into your cog's module, allowing you to use them without explicit imports.
-
-#### Example
+A base class for Discord cogs. Automatically injects all public members of `discord` and `discord.ext.commands` into your cog's module — so you never need extra imports inside cog files.
 
 ```python
 from mycord import Cog
@@ -300,154 +187,301 @@ from mycord import Cog
 class MyCog(Cog):
     def __init__(self, bot):
         self.bot = bot
-    
+
     @commands.command(name="ping")
-    async def ping_command(self, ctx):
+    async def ping(self, ctx):
         await ctx.send(f"Pong! {round(self.bot.latency * 1000)}ms")
 
 async def setup(bot):
     await bot.add_cog(MyCog(bot))
 ```
 
-The `commands.command` decorator is automatically available without importing `discord.ext.commands`.
+`commands`, `discord`, `Embed`, `Member`, `app_commands`, and every other public discord.py symbol are available without any import inside the file.
 
-#### How It Works
+---
 
-The `__init_subclass__` hook injects module-level attributes:
-- All public members from `discord` module
-- All public members from `discord.ext.commands` module
+### DB
 
-This allows cleaner, more concise cog files.
+A simple SQLite wrapper for persistent data storage.
+
+```python
+from mycord import DB
+
+db = DB("mybot.db")
+```
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `db_name` | `str` | `"mycord_data.db"` | SQLite file to create/connect to |
+
+#### Methods
+
+---
+
+##### `db.create_table(name, columns)`
+
+Create a table if it doesn't already exist.
+
+```python
+db.create_table("users", "id INTEGER PRIMARY KEY, name TEXT, points INTEGER DEFAULT 0")
+```
+
+---
+
+##### `db.insert(table, columns, values)`
+
+Insert a new row.
+
+```python
+db.insert("users", "id, name, points", (1, "Alice", 100))
+```
+
+---
+
+##### `db.insert_replace(table, columns, values)`
+
+Insert a row, replacing the existing one on unique constraint conflict.
+
+```python
+db.insert_replace("users", "id, name, points", (1, "Alice", 200))
+```
+
+---
+
+##### `db.fetchone(table, condition=None, values=())`
+
+Fetch a single matching row. Returns a `tuple` or `None`.
+
+```python
+user = db.fetchone("users")                              # first row
+user = db.fetchone("users", "id = ?", (1,))              # by id
+user = db.fetchone("users", "name = ? AND points > ?", ("Alice", 50))
+```
+
+---
+
+##### `db.fetchall(table)`
+
+Fetch all rows. Returns a list of tuples.
+
+```python
+all_users = db.fetchall("users")
+```
+
+---
+
+##### `db.update(table, set_values, condition, values)`
+
+Update matching rows.
+
+```python
+db.update("users", "points = ?", "id = ?", (300, 1))
+```
+
+---
+
+##### `db.delete(table, condition, values)`
+
+Delete matching rows.
+
+```python
+db.delete("users", "id = ?", (1,))
+```
+
+---
+
+##### `db.exists(table, condition, values)`
+
+Check if a matching row exists. Returns `bool`.
+
+```python
+if db.exists("users", "id = ?", (1,)):
+    print("User found!")
+```
+
+---
+
+##### `db.close()`
+
+Close the database connection. Called automatically when the bot shuts down.
+
+```python
+db.close()
+```
 
 ---
 
 ### Tools
 
-A utility class providing helper methods for common Discord bot operations.
-
-#### Methods
-
-##### `chance(percentage: float) -> bool`
-
-Return True with the given probability (0-100).
+A collection of static utility helpers.
 
 ```python
-if Tools.chance(50):
-    print("50% chance succeeded!")
-
-if Tools.chance(10):
-    print("Only 10% chance!")
+from mycord import Tools
+# or via bot:
+# bot.tools.chance(50)
 ```
-
-**Parameters:**
-- `percentage` (float): Probability as a percentage (0-100)
-
-**Returns:** Boolean
-
-##### `timestamp() -> str`
-
-Get the current timestamp as a formatted string.
-
-```python
-current_time = Tools.timestamp()
-print(current_time)  # Output: "2024-01-15 14:30:45"
-```
-
-**Returns:** String in format "YYYY-MM-DD HH:MM:SS"
 
 ---
 
-## API Reference
+##### `Tools.chance(percentage)`
 
-### Imports
+Returns `True` with the given probability.
 
 ```python
-from mycord import MyBot, DB, Cog, Tools
+if Tools.chance(25):
+    print("1 in 4 chance hit!")
 ```
 
-All classes are automatically injected into your main module's namespace, so you can use them directly after importing.
+| Parameter | Type | Description |
+|---|---|---|
+| `percentage` | `float` | Probability from `0` to `100` |
+
+**Returns:** `bool`
+
+---
+
+##### `Tools.timestamp()`
+
+Returns the current time as a formatted string.
+
+```python
+now = Tools.timestamp()
+print(now)  # "2024-06-09 14:30:45"
+```
+
+**Returns:** `str` — formatted as `"YYYY-MM-DD HH:MM:SS"`
 
 ---
 
 ## Examples
 
-### Complete Bot with Database
+### Minimal bot
 
 ```python
-import asyncio
-from mycord import MyBot, DB
+import mycord
 
-# Create bot
-bot = MyBot(command_prefix="!", db_name="bot_data.db")
+TOKEN = mycord.os.getenv("TOKEN")
+
+bot = mycord.Bot(command_prefix="!")
 
 @bot.event
 async def on_ready():
-    print(f"{bot.user} logged in!")
-    
-    # Initialize database
-    bot.create_table(
-        "user_points",
-        "user_id INTEGER PRIMARY KEY, points INTEGER DEFAULT 0"
-    )
+    print(f"✅ Bot online as {bot.user}")
 
-@bot.command(name="points")
-async def get_points(ctx):
-    user_id = ctx.author.id
-    
-    # Use database through bot instance
-    result = bot.fetchone("user_points", "user_id = ?", (user_id,))
-    
-    if result:
-        points = result[1]
-        await ctx.send(f"You have {points} points!")
-    else:
-        await ctx.send("No data found!")
-
-async def main():
-    await bot.autoload_cogs("./cogs")
-    await bot.start("YOUR_TOKEN")
-
-asyncio.run(main())
+bot.start(TOKEN)
 ```
 
-### Creating a Cog with Commands
+---
 
-Create `cogs/moderation.py`:
+### Bot with cogs
+
+`main.py`:
+
+```python
+import mycord
+
+TOKEN = mycord.os.getenv("TOKEN")
+
+bot = mycord.Bot(command_prefix="!")
+
+@bot.event
+async def on_ready():
+    print(f"✅ Bot online as {bot.user}")
+    await bot.autoload_cogs("./cogs", log="{cog} loaded ✅️")
+
+bot.start(TOKEN)
+```
+
+`cogs/general.py`:
 
 ```python
 from mycord import Cog
 
-class ModerationCog(Cog):
+class General(Cog):
     def __init__(self, bot):
         self.bot = bot
-    
-    @commands.command(name="kick")
-    @commands.has_permissions(kick_members=True)
-    async def kick_member(self, ctx, member: Member, *, reason=None):
-        await member.kick(reason=reason)
-        await ctx.send(f"Kicked {member.mention}")
-    
-    @commands.command(name="ban")
-    @commands.has_permissions(ban_members=True)
-    async def ban_member(self, ctx, member: Member, *, reason=None):
-        await member.ban(reason=reason)
-        await ctx.send(f"Banned {member.mention}")
+
+    @commands.command(name="ping")
+    async def ping(self, ctx):
+        await ctx.send(f"🏓 Pong! `{round(self.bot.latency * 1000)}ms`")
+
+    @commands.command(name="hello")
+    async def hello(self, ctx):
+        await ctx.send(f"Hey {ctx.author.mention}! 👋")
 
 async def setup(bot):
-    await bot.add_cog(ModerationCog(bot))
+    await bot.add_cog(General(bot))
 ```
 
-### Using Tools
+---
+
+### Bot with database
 
 ```python
-from mycord import Tools
+import mycord
 
-# Random chance
-if Tools.chance(75):
-    print("75% roll succeeded!")
+TOKEN = mycord.os.getenv("TOKEN")
 
-# Logging with timestamps
-log_message = f"[{Tools.timestamp()}] Bot started successfully"
+bot = mycord.Bot(command_prefix="!")
+
+@bot.event
+async def on_ready():
+    print(f"✅ Bot online as {bot.user}")
+    bot.create_table("points", "user_id INTEGER PRIMARY KEY, amount INTEGER DEFAULT 0")
+
+@bot.command(name="points")
+async def points(ctx):
+    row = bot.fetchone("points", "user_id = ?", (ctx.author.id,))
+    total = row[1] if row else 0
+    await ctx.send(f"💰 You have **{total}** points.")
+
+@bot.command(name="addpoints")
+@commands.has_permissions(administrator=True)
+async def addpoints(ctx, member: mycord.Member, amount: int):
+    existing = bot.fetchone("points", "user_id = ?", (member.id,))
+    if existing:
+        bot.update("points", "amount = amount + ?", "user_id = ?", (amount, member.id))
+    else:
+        bot.insert("points", "user_id, amount", (member.id, amount))
+    await ctx.send(f"✅ Added **{amount}** points to {member.mention}.")
+
+bot.start(TOKEN)
+```
+
+---
+
+### Cog file example
+
+`cogs/moderation.py`:
+
+```python
+from mycord import Cog
+
+class Moderation(Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.command(name="kick")
+    @commands.has_permissions(kick_members=True)
+    async def kick(self, ctx, member: Member, *, reason="No reason provided"):
+        await member.kick(reason=reason)
+        await ctx.send(f"👢 Kicked **{member}** — {reason}")
+
+    @commands.command(name="ban")
+    @commands.has_permissions(ban_members=True)
+    async def ban(self, ctx, member: Member, *, reason="No reason provided"):
+        await member.ban(reason=reason)
+        await ctx.send(f"🔨 Banned **{member}** — {reason}")
+
+    @commands.command(name="clear")
+    @commands.has_permissions(manage_messages=True)
+    async def clear(self, ctx, amount: int = 5):
+        await ctx.channel.purge(limit=amount + 1)
+        msg = await ctx.send(f"🧹 Cleared **{amount}** messages.")
+        await msg.delete(delay=3)
+
+async def setup(bot):
+    await bot.add_cog(Moderation(bot))
 ```
 
 ---
@@ -455,17 +489,17 @@ log_message = f"[{Tools.timestamp()}] Bot started successfully"
 ## Requirements
 
 | Package | Version | Purpose |
-|---------|---------|---------|
-| discord.py | >=2.0.0 | Discord API wrapper |
-| python-dotenv | >=1.0.0 | Environment variable management |
-| Python | >=3.8 | Runtime |
+|---|---|---|
+| `discord.py` | `>=2.0.0` | Discord API wrapper |
+| `python-dotenv` | `>=1.0.0` | Automatic `.env` loading |
+| Python | `>=3.8` | Runtime |
 
 ---
-
-## License
-
-MIT License - See LICENSE file for details
 
 ## Author
 
 Created by [amri4](https://github.com/amri4)
+
+## License
+
+MIT License — see [LICENSE](LICENSE) for details.
