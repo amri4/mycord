@@ -1,163 +1,61 @@
 import sqlite3
 
-# =========================================
-# CONNECT
-# =========================================
+class DB:
+    def __init__(self, db_name="mycord_data.db"):
+        self.db_name = db_name
+        self.conn = sqlite3.connect(db_name)
+        self.cursor = self.conn.cursor()
 
-# Keeps your exact global setup
-conn = sqlite3.connect("database.db")
-cursor = conn.cursor()
+    def create_table(self, name, columns):
+        self.cursor.execute(f"""
+        CREATE TABLE IF NOT EXISTS {name} (
+            {columns}
+        )
+        """)
+        self.conn.commit()
 
-# =========================================
-# HELPER TO SWITCH DATABASE FILE DYNAMICALLY
-# =========================================
+    def insert(self, table, columns, values):
+        placeholders = ", ".join(["?"] * len(values))
+        self.cursor.execute(f"""
+        INSERT INTO {table} ({columns}) VALUES ({placeholders})
+        """, values)
+        self.conn.commit()
 
-def _switch_db(db_name):
-    """Closes the current connection and opens a new one named after the table."""
-    global conn, cursor
-    conn.close()
-    conn = sqlite3.connect(f"{db_name}.db")
-    cursor = conn.cursor()
+    def insert_replace(self, table, columns, values):
+        placeholders = ", ".join(["?"] * len(values))
+        self.cursor.execute(f"""
+        INSERT OR REPLACE INTO {table} ({columns}) VALUES ({placeholders})
+        """, values)
+        self.conn.commit()
 
-# =========================================
-# CREATE TABLE
-# =========================================
+    def fetchone(self, table, condition=None, values=()):
+        query = f"SELECT * FROM {table}"
+        if condition:
+            query += f" WHERE {condition}"
+        self.cursor.execute(query, values)
+        return self.cursor.fetchone()
 
-def create_table(name, columns):
+    def fetchall(self, table):
+        self.cursor.execute(f"SELECT * FROM {table}")
+        return self.cursor.fetchall()
 
-    _switch_db(name)
+    def update(self, table, set_values, condition, values):
+        self.cursor.execute(f"""
+        UPDATE {table} SET {set_values} WHERE {condition}
+        """, values)
+        self.conn.commit()
 
-    cursor.execute(f"""
-    CREATE TABLE IF NOT EXISTS {name} (
-        {columns}
-    )
-    """)
+    def delete(self, table, condition, values):
+        self.cursor.execute(f"""
+        DELETE FROM {table} WHERE {condition}
+        """, values)
+        self.conn.commit()
 
-    conn.commit()
+    def exists(self, table, condition, values):
+        self.cursor.execute(f"""
+        SELECT 1 FROM {table} WHERE {condition}
+        """, values)
+        return self.cursor.fetchone() is not None
 
-# =========================================
-# INSERT
-# =========================================
-
-def insert(table, columns, values):
-
-    _switch_db(table)
-
-    placeholders = ", ".join(
-        ["?"] * len(values)
-    )
-
-    cursor.execute(f"""
-    INSERT INTO {table}
-    ({columns})
-
-    VALUES ({placeholders})
-    """, values)
-
-    conn.commit()
-
-# =========================================
-# INSERT OR REPLACE
-# =========================================
-
-def insert_replace(table, columns, values):
-
-    _switch_db(table)
-
-    placeholders = ", ".join(
-        ["?"] * len(values)
-    )
-
-    cursor.execute(f"""
-    INSERT OR REPLACE INTO {table}
-    ({columns})
-
-    VALUES ({placeholders})
-    """, values)
-
-    conn.commit()
-
-# =========================================
-# SELECT ONE
-# =========================================
-
-def fetchone(table, condition=None, values=()):
-
-    _switch_db(table)
-
-    query = f"SELECT * FROM {table}"
-
-    if condition:
-        query += f" WHERE {condition}"
-
-    cursor.execute(query, values)
-
-    return cursor.fetchone()
-
-# =========================================
-# SELECT ALL
-# =========================================
-
-def fetchall(table):
-
-    _switch_db(table)
-
-    cursor.execute(f"""
-    SELECT * FROM {table}
-    """)
-
-    return cursor.fetchall()
-
-# =========================================
-# UPDATE
-# =========================================
-
-def update(table, set_values, condition, values):
-
-    _switch_db(table)
-
-    cursor.execute(f"""
-    UPDATE {table}
-    SET {set_values}
-    WHERE {condition}
-    """, values)
-
-    conn.commit()
-
-# =========================================
-# DELETE
-# =========================================
-
-def delete(table, condition, values):
-
-    _switch_db(table)
-
-    cursor.execute(f"""
-    DELETE FROM {table}
-    WHERE {condition}
-    """, values)
-
-    conn.commit()
-
-# =========================================
-# EXISTS
-# =========================================
-
-def exists(table, condition, values):
-
-    _switch_db(table)
-
-    cursor.execute(f"""
-    SELECT * FROM {table}
-    WHERE {condition}
-    """, values)
-
-    return cursor.fetchone() is not None
-
-# =========================================
-# CLOSE
-# =========================================
-
-def close():
-
-    conn.close()
+    def close(self):
+        self.conn.close()
