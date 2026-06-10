@@ -2,6 +2,7 @@ const DARK_MODE_KEY = 'mycord-dark-mode';
 
 function applyDarkMode(enabled) {
   document.body.classList.toggle('dark-mode', enabled);
+  document.body.classList.toggle('light-mode', !enabled);
   const toggle = document.getElementById('dark-mode-toggle');
   if (toggle) {
     toggle.textContent = enabled ? 'Light mode' : 'Dark mode';
@@ -13,7 +14,7 @@ function loadDarkModeSetting() {
   if (saved !== null) {
     return saved === 'true';
   }
-  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return true;
 }
 
 function toggleDarkMode() {
