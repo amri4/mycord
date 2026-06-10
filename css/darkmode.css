@@ -1,0 +1,90 @@
+:root {
+  color-scheme: light dark;
+}
+
+body.dark-mode,
+body.dark-mode .wy-nav-content,
+body.dark-mode .md-content,
+body.dark-mode .wy-nav-side,
+body.dark-mode .wy-side-nav-search,
+body.dark-mode .wy-nav-top,
+body.dark-mode .rst-content {
+  background-color: #0f1117 !important;
+  color: #e6e8ff !important;
+}
+
+body.dark-mode a,
+body.dark-mode .wy-side-nav-search input,
+body.dark-mode .wy-nav-content a,
+body.dark-mode .md-content a,
+body.dark-mode .wy-nav-side a {
+  color: #8ab4f8 !important;
+}
+
+body.dark-mode .wy-nav-side,
+body.dark-mode .wy-nav-top,
+body.dark-mode .wy-side-nav-search,
+body.dark-mode .md-footer,
+body.dark-mode .md-content section {
+  background-color: #11151f !important;
+}
+
+body.dark-mode .wy-breadcrumbs,
+body.dark-mode .wy-side-nav-search input,
+body.dark-mode .md-footer,
+body.dark-mode .md-content table,
+body.dark-mode .md-content table th,
+body.dark-mode .md-content table td,
+body.dark-mode .wy-nav-side .current {
+  border-color: #22253b !important;
+}
+
+body.dark-mode .highlight,
+body.dark-mode .md-code-block,
+body.dark-mode pre,
+body.dark-mode code {
+  background: #161b2f !important;
+  color: #e6e8ff !important;
+}
+
+body.dark-mode .md-content blockquote,
+body.dark-mode .wy-nav-side,
+body.dark-mode .wy-nav-top,
+body.dark-mode .wy-side-nav-search,
+body.dark-mode .md-footer,
+body.dark-mode .md-content section,
+body.dark-mode .md-content .admonition {
+  border-color: #333a57 !important;
+}
+
+#dark-mode-toggle {
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.08);
+  color: inherit;
+  cursor: pointer;
+  border-radius: 999px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+#dark-mode-toggle:hover {
+  background: rgba(255,255,255,0.14);
+}
+
+#dark-mode-toggle:focus-visible {
+  outline: 2px solid #8ab4f8;
+  outline-offset: 2px;
+}
+
+.dark-mode-toggle-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+body.dark-mode #dark-mode-toggle {
+  background: rgba(255,255,255,0.12);
+}
