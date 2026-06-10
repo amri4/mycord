@@ -1,0 +1,5 @@
+build/
+site/
+mycord.egg-info/
+__pycache__/
+.env
