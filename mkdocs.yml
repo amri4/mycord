@@ -14,5 +14,12 @@ theme:
   name: readthedocs
   palette:
     scheme: default
+  custom_dir: theme
+  static_templates:
+    - 404.html
+  extra_css:
+    - css/darkmode.css
+  extra_javascript:
+    - js/darkmode.js
 plugins:
   - search
