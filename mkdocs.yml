@@ -3,7 +3,8 @@ site_description: Minimal Discord bot wrapper docs
 site_url: https://amri4.github.io/mycord
 repo_name: amri4/mycord
 repo_url: https://github.com/amri4/mycord
-site_dir: site
+docs_dir: docs_src
+site_dir: docs
 nav:
   - Home: index.md
   - Installation: installation.md
@@ -13,10 +14,8 @@ nav:
 theme:
   name: readthedocs
   palette:
-    scheme: default
+    scheme: dark
 extra_css:
   - css/darkmode.css
-extra_javascript:
-  - js/darkmode.js
 plugins:
   - search
