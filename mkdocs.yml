@@ -1,0 +1,18 @@
+site_name: mycord
+site_description: Minimal Discord bot wrapper docs
+site_url: https://amri4.github.io/mycord
+repo_name: amri4/mycord
+repo_url: https://github.com/amri4/mycord
+site_dir: site
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Getting Started: getting-started.md
+  - API: api.md
+  - Examples: examples.md
+theme:
+  name: readthedocs
+  palette:
+    scheme: default
+plugins:
+  - search

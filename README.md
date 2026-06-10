@@ -4,6 +4,8 @@ A minimalist, dynamic wrapper framework for [discord.py](https://github.com/Rapp
 
 **mycord** simplifies Discord bot development through a single import — `import mycord`. No scattered imports, no boilerplate. Everything lives under the `mycord` namespace.
 
+Documentation: https://amri4.github.io/mycord
+
 ---
 
 ## Table of Contents
