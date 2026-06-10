@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://amri4.github.io/mycord/api/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>API - mycord</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../css/darkmode.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "API";
+        var mkdocs_page_input_path = "api.md";
+        var mkdocs_page_url = "/mycord/api/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> mycord
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../getting-started/">Getting Started</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">API</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#mycordbot">mycord.Bot</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#initialization">Initialization</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#parameters">Parameters</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#methods">Methods</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#botstarttoken">bot.start(token)</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#botrun_bottoken_env_nametoken">bot.run_bot(token_env_name="TOKEN")</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#await-botautoload_cogsdirectorycogs">await bot.autoload_cogs(directory="./cogs")</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#botget_envkey-defaultnone">bot.get_env(key, default=None)</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#database-proxy">Database proxy</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#mycordcog">mycord.Cog</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#mycorddb">mycord.DB</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#methods_1">Methods</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#mycordtools">mycord.Tools</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#toolschancepercentage">Tools.chance(percentage)</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#toolstimestamp">Tools.timestamp()</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#mycordos">mycord.os</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">mycord</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">API</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/amri4/mycord/edit/master/docs/api.md">Edit on amri4/mycord</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="api-reference">API Reference</h1>
+<h2 id="mycordbot"><code>mycord.Bot</code></h2>
+<p><code>mycord.Bot</code> is the main bot class.
+It extends <code>discord.ext.commands.Bot</code> and includes:</p>
+<ul>
+<li>automatic <code>.env</code> loading via <code>python-dotenv</code></li>
+<li>an integrated SQLite database instance</li>
+<li>convenient cog autoloading</li>
+<li><code>run_bot()</code> for environment-based startup</li>
+</ul>
+<h3 id="initialization">Initialization</h3>
+<pre><code class="language-python">bot = mycord.Bot(command_prefix, db_name=&quot;mycord_data.db&quot;, **options)
+</code></pre>
+<h4 id="parameters">Parameters</h4>
+<ul>
+<li><code>command_prefix</code> (<code>str</code>): required command prefix.</li>
+<li><code>db_name</code> (<code>str</code>): SQLite filename, default <code>mycord_data.db</code>.</li>
+<li><code>**options</code>: passed directly to <code>discord.ext.commands.Bot</code>.</li>
+</ul>
+<h3 id="methods">Methods</h3>
+<h4 id="botstarttoken"><code>bot.start(token)</code></h4>
+<p>Start the bot using a token string.</p>
+<h4 id="botrun_bottoken_env_nametoken"><code>bot.run_bot(token_env_name="TOKEN")</code></h4>
+<p>Start the bot by reading a token from the environment.</p>
+<pre><code class="language-python">bot.run_bot()
+bot.run_bot(token_env_name=&quot;MY_TOKEN&quot;)
+</code></pre>
+<h4 id="await-botautoload_cogsdirectorycogs"><code>await bot.autoload_cogs(directory="./cogs")</code></h4>
+<p>Load every <code>.py</code> file in a directory as a cog.</p>
+<ul>
+<li>skips files beginning with <code>_</code></li>
+<li>creates the directory if it does not exist</li>
+</ul>
+<pre><code class="language-python">await bot.autoload_cogs()
+</code></pre>
+<h4 id="botget_envkey-defaultnone"><code>bot.get_env(key, default=None)</code></h4>
+<p>Read an environment variable.</p>
+<pre><code class="language-python">db_name = bot.get_env(&quot;DB_NAME&quot;, default=&quot;mycord_data.db&quot;)
+</code></pre>
+<h3 id="database-proxy">Database proxy</h3>
+<p>All <code>mycord.DB</code> methods are available directly on the bot instance.</p>
+<pre><code class="language-python">bot.create_table(&quot;users&quot;, &quot;id INTEGER PRIMARY KEY, name TEXT&quot;)
+bot.insert(&quot;users&quot;, &quot;id, name&quot;, (1, &quot;Alice&quot;))
+user = bot.fetchone(&quot;users&quot;, &quot;id = ?&quot;, (1,))
+</code></pre>
+<h2 id="mycordcog"><code>mycord.Cog</code></h2>
+<p>A base class for cogs that injects public <code>discord</code> and <code>discord.ext.commands</code> symbols into the cog module.</p>
+<pre><code class="language-python">import mycord
+
+class General(mycord.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.command(name=&quot;ping&quot;)
+    async def ping(self, ctx):
+        await ctx.send(f&quot;Pong! {round(self.bot.latency * 1000)}ms&quot;)
+
+async def setup(bot):
+    await bot.add_cog(General(bot))
+</code></pre>
+<h2 id="mycorddb"><code>mycord.DB</code></h2>
+<p>A lightweight SQLite wrapper.</p>
+<pre><code class="language-python">db = mycord.DB(&quot;mybot.db&quot;)
+</code></pre>
+<h3 id="methods_1">Methods</h3>
+<ul>
+<li><code>create_table(name, columns)</code></li>
+<li><code>insert(table, columns, values)</code></li>
+<li><code>insert_replace(table, columns, values)</code></li>
+<li><code>fetchone(table, condition=None, values=())</code></li>
+<li><code>fetchall(table)</code></li>
+<li><code>update(table, set_values, condition, values)</code></li>
+<li><code>delete(table, condition, values)</code></li>
+<li><code>exists(table, condition, values)</code></li>
+<li><code>close()</code></li>
+</ul>
+<h2 id="mycordtools"><code>mycord.Tools</code></h2>
+<p>Utility helpers.</p>
+<h3 id="toolschancepercentage"><code>Tools.chance(percentage)</code></h3>
+<p>Return <code>True</code> with the provided chance.</p>
+<h3 id="toolstimestamp"><code>Tools.timestamp()</code></h3>
+<p>Return the current timestamp as a string.</p>
+<h2 id="mycordos"><code>mycord.os</code></h2>
+<p>The package exposes the standard <code>os</code> module from <code>mycord.os</code>.</p>
+<pre><code class="language-python">from mycord import os
+TOKEN = mycord.os.getenv(&quot;TOKEN&quot;)
+</code></pre>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../getting-started/" class="btn btn-neutral float-left" title="Getting Started"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../examples/" class="btn btn-neutral float-right" title="Examples">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/amri4/mycord" class="fa fa-code-fork" style="color: #fcfcfc"> amri4/mycord</a>
+        </span>
+    
+    
+      <span><a href="../getting-started/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../examples/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../js/darkmode.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
