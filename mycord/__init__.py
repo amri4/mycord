@@ -1,19 +1,16 @@
 import os
-import sys
-from .bot import MyBot
+from dotenv import find_dotenv, load_dotenv
+from .bot import Bot
 from .database import DB
 from .tools import Tools
-from .cog import Cog
+import discord
+from discord.ext import commands as discord_commands
 
-Bot = MyBot
+# Automatically load environment variables from .env when mycord is imported.
+load_dotenv(find_dotenv())
 
-# Perform the global injection hack for the core execution file
-if '__main__' in sys.modules:
-    main_module = sys.modules['__main__']
-    setattr(main_module, 'MyBot', MyBot)
-    setattr(main_module, 'DB', DB)
-    setattr(main_module, 'Tools', Tools)
-    setattr(main_module, 'Cog', Cog)
+# Expose discord.py helpers so users can mix mycord and discord.py imports.
+commands = discord_commands
 
-__all__ = ['MyBot', 'Bot', 'DB', 'Tools', 'Cog', 'os']
+__all__ = ['Bot', 'DB', 'Tools', 'os', 'discord', 'commands']
 

@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mycord"
-version = "1.0.4"
+version = "1.0.5"
 authors = [
     { name = "amri4", email = "amri.supreme123@gmail.com" }
 ]
-description = "A minimalist, dynamic wrapper framework for discord.py with built-in database management."
+description = "A minimalist Discord bot framework that communicates directly with Discord Gateway and REST."
 readme = "README.md"
 requires-python = ">=3.8"
 classifiers = [
