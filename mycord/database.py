@@ -1,9 +1,17 @@
+import os
 import sqlite3
 
 class DB:
     def __init__(self, db_name="mycord_data.db"):
-        self.db_name = db_name
-        self.conn = sqlite3.connect(db_name)
+        # 📂 Ensure the 'data' directory exists locally
+        folder_name = "data"
+        if not os.path.exists(folder_name):
+            os.makedirs(folder_name, exist_ok=True)
+
+        # 🔄 Force the database file path inside the 'data' folder
+        # Ensures clean isolation from your repository syncs!
+        self.db_name = os.path.join(folder_name, db_name)
+        self.conn = sqlite3.connect(self.db_name)
         self.cursor = self.conn.cursor()
 
     def create_table(self, name, columns):
