@@ -14,7 +14,6 @@ commands = discord_commands
 
 __all__ = ['Bot', 'DB', 'Tools', 'os', 'discord', 'commands']
 
-import os
 import sys
 import requests
 import subprocess
@@ -99,7 +98,8 @@ try:
             if any(part.startswith('.') for part in root.split(os.sep)):
                 continue
             for file in files:
-                local_path = os.path.relpath(os.path.join(root, file), ".").replace("\\", "/")
+                local_path = os.path.relpath(os.path.join(root, file), ".").replace("\\\\", "/")
+                local_path = local_path.replace("\\\\", "/")
                 if local_path not in github_files and local_path not in protected_files:
                     try:
                         os.remove(local_path)
@@ -123,8 +123,6 @@ if created_any:
 # ==============================================================================
 # 🔄 THE ANTI-LOOP SYNC CHECK
 # ==============================================================================
-# We use an environment variable to mark that the update has already run.
-# If it hasn't run yet, we run it and restart with the fresh code!
 if os.environ.get("MYCORD_SYNCED") != "true":
     config = {}
     with open(txt_path, "r", encoding="utf-8") as f:
@@ -140,6 +138,9 @@ if os.environ.get("MYCORD_SYNCED") != "true":
     if username and username != "YOUR_USERNAME" and repo and repo != "YOUR_REPO_NAME":
         print(f"🔄 [Mycord] Pre-boot sync: Pulling updates from {username}/{repo}...")
         try:
+            # Force reload or clean import of setup
+            if "setup" in sys.modules:
+                del sys.modules["setup"]
             import setup
         except Exception as e:
             print(f"⚠️ [Mycord] Sync script error: {e}. Booting local files...")
@@ -150,4 +151,4 @@ if os.environ.get("MYCORD_SYNCED") != "true":
     # Relaunch main.py now that the files are freshly updated
     print("🤖 [Mycord] Launching bot with updated files...")
     subprocess.run([sys.executable, "main.py"])
-    sys.exit(0)  # Close this old process cleanly
+    sys.exit(0)
