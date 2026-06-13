@@ -14,12 +14,13 @@ commands = discord_commands
 
 __all__ = ['Bot', 'DB', 'Tools', 'os', 'discord', 'commands']
 
+import os
 import sys
 import requests
 import subprocess
 
 # ==============================================================================
-# 🚀 AUTOMATIC WORKSPACE GENERATOR & SYNC ENGINE
+# 🚀 AUTOMATIC WORKSPACE GENERATOR & SINGLE-BOOT SYNC
 # ==============================================================================
 cwd = os.getcwd()
 txt_path = os.path.join(cwd, "setup.txt")
@@ -114,38 +115,39 @@ except Exception as e:
     print("✨ [Mycord] Generated setup.py in your file manager.")
     created_any = True
 
-# 🛑 Stop execution on first boot so they can configure credentials
+# Stop execution on first boot so they can configure credentials
 if created_any:
     print("👉 Please configure setup.txt with your GitHub details and restart the server.")
     sys.exit(0)
 
 # ==============================================================================
-# 🔄 LIVE PRODUCTION EXECUTION FLOW (Runs on every subsequent boot)
+# 🔄 THE ANTI-LOOP SYNC CHECK
 # ==============================================================================
-# 1. Read config to process the update
-config = {}
-with open(txt_path, "r", encoding="utf-8") as f:
-    for line in f:
-        line = line.strip()
-        if line and "=" in line:
-            k, v = line.split("=", 1)
-            config[k.strip()] = v.strip()
+# We use an environment variable to mark that the update has already run.
+# If it hasn't run yet, we run it and restart with the fresh code!
+if os.environ.get("MYCORD_SYNCED") != "true":
+    config = {}
+    with open(txt_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line and "=" in line:
+                k, v = line.split("=", 1)
+                config[k.strip()] = v.strip()
 
-username = config.get("github_username")
-repo = config.get("github_repo")
+    username = config.get("github_username")
+    repo = config.get("github_repo")
 
-# 2. Automatically trigger the pull changes sequence right now
-if username and username != "YOUR_USERNAME" and repo and repo != "YOUR_REPO_NAME":
-    print(f"🔄 [Mycord] Pre-boot sync: Pulling updates from {username}/{repo}...")
-    try:
-        # Import your newly generated setup file locally to run its sync function
-        import setup
-    except Exception as e:
-        print(f"⚠️ [Mycord] Sync script error: {e}. Booting local files...")
+    if username and username != "YOUR_USERNAME" and repo and repo != "YOUR_REPO_NAME":
+        print(f"🔄 [Mycord] Pre-boot sync: Pulling updates from {username}/{repo}...")
+        try:
+            import setup
+        except Exception as e:
+            print(f"⚠️ [Mycord] Sync script error: {e}. Booting local files...")
 
-# 3. Hand off system power to main.py seamlessly
-print("🤖 [Mycord] Starting your bot (main.py)...")
-if os.path.exists("main.py"):
+    # Set the flag so the next process skips syncing and just runs the bot
+    os.environ["MYCORD_SYNCED"] = "true"
+    
+    # Relaunch main.py now that the files are freshly updated
+    print("🤖 [Mycord] Launching bot with updated files...")
     subprocess.run([sys.executable, "main.py"])
-else:
-    print("❌ Critical Error: main.py was not found after the repository sync!")
+    sys.exit(0)  # Close this old process cleanly
