@@ -38,9 +38,9 @@ if not os.path.exists(txt_path):
     print("✨ [Mycord] Generated setup.txt in your file manager.")
     created_any = True
 
-# ⚙️ 2. Generate setup.py if missing
+# ⚙️ 2. Generate setup.py if missing (Using a RAW string `r"""` to protect backslashes)
 if not os.path.exists(py_path):
-    setup_script_content = """import os
+    setup_script_content = r"""import os
 import sys
 import requests
 
@@ -98,8 +98,7 @@ try:
             if any(part.startswith('.') for part in root.split(os.sep)):
                 continue
             for file in files:
-                local_path = os.path.relpath(os.path.join(root, file), ".").replace("\\\\", "/")
-                local_path = local_path.replace("\\\\", "/")
+                local_path = os.path.relpath(os.path.join(root, file), ".").replace("\\", "/")
                 if local_path not in github_files and local_path not in protected_files:
                     try:
                         os.remove(local_path)
@@ -138,7 +137,6 @@ if os.environ.get("MYCORD_SYNCED") != "true":
     if username and username != "YOUR_USERNAME" and repo and repo != "YOUR_REPO_NAME":
         print(f"🔄 [Mycord] Pre-boot sync: Pulling updates from {username}/{repo}...")
         try:
-            # Force reload or clean import of setup
             if "setup" in sys.modules:
                 del sys.modules["setup"]
             import setup
