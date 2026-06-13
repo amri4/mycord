@@ -71,7 +71,7 @@ class CustomInstallCommand(install):
 # ==============================================================================
 setup(
     name="mycord",
-    version="1.0.6",
+    version="1.0.7",
     description="The ultimate self-syncing Discord bot framework framework.",
     author="luffy",
     packages=["mycord"],  # Points to your inner folder containing __init__.py
