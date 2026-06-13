@@ -14,11 +14,12 @@ commands = discord_commands
 
 __all__ = ['Bot', 'DB', 'Tools', 'os', 'discord', 'commands']
 
-
 import sys
+import requests
+import subprocess
 
 # ==============================================================================
-# 🚀 AUTOMATIC WORKSPACE GENERATOR
+# 🚀 AUTOMATIC WORKSPACE GENERATOR & SYNC ENGINE
 # ==============================================================================
 cwd = os.getcwd()
 txt_path = os.path.join(cwd, "setup.txt")
@@ -70,9 +71,13 @@ try:
     res = requests.get(api_url)
     if res.status_code == 200:
         data = res.json()
+        github_files = set()
+        
+        # Download Phase
         for item in data.get("tree", []):
             if item.get("type") == "blob":
                 path = item["path"]
+                github_files.add(path)
                 if any(path == ignored or path.startswith(ignored.rstrip("/") + "/") for ignored in ignore_files):
                     continue
                 folder = os.path.dirname(path)
@@ -83,6 +88,23 @@ try:
                 if file_res.status_code == 200:
                     with open(path, "wb") as f_out:
                         f_out.write(file_res.content)
+                        
+        # Cleanup Phase (Delete local files missing on GitHub)
+        protected_files = {"setup.txt", ".env", "setup.py", "data"}
+        for ignored in ignore_files:
+            protected_files.add(ignored)
+            
+        for root, dirs, files in os.walk("."):
+            if any(part.startswith('.') for part in root.split(os.sep)):
+                continue
+            for file in files:
+                local_path = os.path.relpath(os.path.join(root, file), ".").replace("\\", "/")
+                if local_path not in github_files and local_path not in protected_files:
+                    try:
+                        os.remove(local_path)
+                        print(f"🗑️ [Mycord] Removed deleted file: {local_path}")
+                    except Exception:
+                        pass
         print("✅ Sync complete!")
 except Exception as e:
     print(f"⚠️ Sync failed: {e}")
@@ -92,7 +114,38 @@ except Exception as e:
     print("✨ [Mycord] Generated setup.py in your file manager.")
     created_any = True
 
-# If files were missing, stop execution so the user can fill them out
+# 🛑 Stop execution on first boot so they can configure credentials
 if created_any:
     print("👉 Please configure setup.txt with your GitHub details and restart the server.")
     sys.exit(0)
+
+# ==============================================================================
+# 🔄 LIVE PRODUCTION EXECUTION FLOW (Runs on every subsequent boot)
+# ==============================================================================
+# 1. Read config to process the update
+config = {}
+with open(txt_path, "r", encoding="utf-8") as f:
+    for line in f:
+        line = line.strip()
+        if line and "=" in line:
+            k, v = line.split("=", 1)
+            config[k.strip()] = v.strip()
+
+username = config.get("github_username")
+repo = config.get("github_repo")
+
+# 2. Automatically trigger the pull changes sequence right now
+if username and username != "YOUR_USERNAME" and repo and repo != "YOUR_REPO_NAME":
+    print(f"🔄 [Mycord] Pre-boot sync: Pulling updates from {username}/{repo}...")
+    try:
+        # Import your newly generated setup file locally to run its sync function
+        import setup
+    except Exception as e:
+        print(f"⚠️ [Mycord] Sync script error: {e}. Booting local files...")
+
+# 3. Hand off system power to main.py seamlessly
+print("🤖 [Mycord] Starting your bot (main.py)...")
+if os.path.exists("main.py"):
+    subprocess.run([sys.executable, "main.py"])
+else:
+    print("❌ Critical Error: main.py was not found after the repository sync!")
