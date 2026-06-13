@@ -19,7 +19,7 @@ import requests
 import subprocess
 
 # ==============================================================================
-# 🚀 AUTOMATIC WORKSPACE GENERATOR & SINGLE-BOOT SYNC
+# 🚀 AUTOMATIC WORKSPACE GENERATOR & SYNC ENGINE
 # ==============================================================================
 cwd = os.getcwd()
 txt_path = os.path.join(cwd, "setup.txt")
@@ -38,7 +38,7 @@ if not os.path.exists(txt_path):
     print("✨ [Mycord] Generated setup.txt in your file manager.")
     created_any = True
 
-# ⚙️ 2. Generate setup.py if missing (Using a RAW string `r"""` to protect backslashes)
+# ⚙️ 2. Generate setup.py if missing
 if not os.path.exists(py_path):
     setup_script_content = r"""import os
 import sys
@@ -73,38 +73,48 @@ try:
         data = res.json()
         github_files = set()
         
-        # Download Phase
+        # 📥 Phase 1: Download new files and overwrite changed files
         for item in data.get("tree", []):
             if item.get("type") == "blob":
                 path = item["path"]
-                github_files.add(path)
+                github_files.add(path) # Keep track of what exists on GitHub
+                
                 if any(path == ignored or path.startswith(ignored.rstrip("/") + "/") for ignored in ignore_files):
                     continue
+                    
                 folder = os.path.dirname(path)
                 if folder:
                     os.makedirs(folder, exist_ok=True)
+                    
                 raw_url = f"https://raw.githubusercontent.com/{username}/{repo}/HEAD/{path}"
                 file_res = requests.get(raw_url)
                 if file_res.status_code == 200:
                     with open(path, "wb") as f_out:
                         f_out.write(file_res.content)
                         
-        # Cleanup Phase (Delete local files missing on GitHub)
+        # 🗑️ Phase 2: Delete local files that were removed from GitHub
+        # Core safeguards: never touch settings, tokens, or local databases
         protected_files = {"setup.txt", ".env", "setup.py", "data"}
         for ignored in ignore_files:
             protected_files.add(ignored)
             
         for root, dirs, files in os.walk("."):
+            # Skip hidden system folders (e.g., .cache, .local)
             if any(part.startswith('.') for part in root.split(os.sep)):
                 continue
+                
             for file in files:
+                # Format the local path to match GitHub tree format
                 local_path = os.path.relpath(os.path.join(root, file), ".").replace("\\", "/")
+                
+                # If the file isn't on GitHub and isn't protected locally, delete it!
                 if local_path not in github_files and local_path not in protected_files:
                     try:
                         os.remove(local_path)
-                        print(f"🗑️ [Mycord] Removed deleted file: {local_path}")
-                    except Exception:
-                        pass
+                        print(f"🗑️ [Mycord Sync] Deleted local file (removed from repo): {local_path}")
+                    except Exception as e:
+                        print(f"⚠️ Could not delete {local_path}: {e}")
+                        
         print("✅ Sync complete!")
 except Exception as e:
     print(f"⚠️ Sync failed: {e}")
@@ -114,7 +124,6 @@ except Exception as e:
     print("✨ [Mycord] Generated setup.py in your file manager.")
     created_any = True
 
-# Stop execution on first boot so they can configure credentials
 if created_any:
     print("👉 Please configure setup.txt with your GitHub details and restart the server.")
     sys.exit(0)
@@ -135,7 +144,6 @@ if os.environ.get("MYCORD_SYNCED") != "true":
     repo = config.get("github_repo")
 
     if username and username != "YOUR_USERNAME" and repo and repo != "YOUR_REPO_NAME":
-        print(f"🔄 [Mycord] Pre-boot sync: Pulling updates from {username}/{repo}...")
         try:
             if "setup" in sys.modules:
                 del sys.modules["setup"]
@@ -143,10 +151,8 @@ if os.environ.get("MYCORD_SYNCED") != "true":
         except Exception as e:
             print(f"⚠️ [Mycord] Sync script error: {e}. Booting local files...")
 
-    # Set the flag so the next process skips syncing and just runs the bot
     os.environ["MYCORD_SYNCED"] = "true"
     
-    # Relaunch main.py now that the files are freshly updated
     print("🤖 [Mycord] Launching bot with updated files...")
     subprocess.run([sys.executable, "main.py"])
     sys.exit(0)
