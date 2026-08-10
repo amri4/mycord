@@ -65,5 +65,9 @@ class DB:
         """, values)
         return self.cursor.fetchone() is not None
 
+    def drop_table(self, name):
+        self.cursor.execute(f"DROP TABLE IF EXISTS {name}")
+        self.conn.commit()
+
     def close(self):
         self.conn.close()
