@@ -5,6 +5,7 @@ from .database import DB
 from .tools import Tools
 import discord
 from discord.ext import commands as discord_commands
+from .punksdb import PunksDB
 
 # Automatically load environment variables from .env when mycord is imported.
 load_dotenv(find_dotenv())
