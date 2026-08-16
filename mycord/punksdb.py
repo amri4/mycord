@@ -15,6 +15,10 @@ class PunksDB:
 
         self.key_file = "punksdb.txt"
 
+        # =========================================
+        # CREATE KEY FILE
+        # =========================================
+
         if not os.path.exists(
             self.key_file
         ):
@@ -35,6 +39,10 @@ class PunksDB:
                 "and restart the bot."
             )
 
+        # =========================================
+        # READ KEY
+        # =========================================
+
         with open(
             self.key_file,
             "r",
@@ -49,6 +57,15 @@ class PunksDB:
                 "punksdb.txt is empty."
             )
 
+        if self.key == (
+            "PUT_YOUR_PUNKSDB_KEY_HERE"
+        ):
+
+            raise RuntimeError(
+                "Replace the placeholder in "
+                "punksdb.txt with your PunksDB key."
+            )
+
     # =========================================
     # REQUEST
     # =========================================
@@ -59,33 +76,111 @@ class PunksDB:
         **data
     ):
 
-        response = requests.post(
-            f"{self.server}/request",
-            json={
-                "action": action,
-                "db_name": self.db_name,
-                **data
-            },
-            headers={
-                "X-PunksDB-Key": self.key
-            },
-            timeout=10
-        )
+        try:
 
-        response.raise_for_status()
+            response = requests.post(
+                f"{self.server}/request",
+                json={
+                    "action": action,
+                    "db_name": self.db_name,
+                    **data
+                },
+                headers={
+                    "X-PunksDB-Key": self.key
+                },
+                timeout=10
+            )
 
-        result = response.json()
+        except requests.RequestException as error:
+
+            raise RuntimeError(
+                "Could not connect to PunksDB: "
+                f"{type(error).__name__}: {error}"
+            ) from error
+
+        # =========================================
+        # HTTP ERROR
+        # =========================================
+
+        if response.status_code != 200:
+
+            # Try JSON first
+            try:
+
+                error_data = response.json()
+
+            except ValueError:
+
+                error_data = response.text
+
+            # Convert response into readable text
+            if isinstance(
+                error_data,
+                dict
+            ):
+
+                server_error = (
+                    error_data.get("error")
+                    or error_data.get("message")
+                    or str(error_data)
+                )
+
+            else:
+
+                server_error = str(
+                    error_data
+                )
+
+            if not server_error.strip():
+
+                server_error = (
+                    "The PunksDB server returned "
+                    "an empty error response."
+                )
+
+            raise RuntimeError(
+                f"PunksDB HTTP "
+                f"{response.status_code}: "
+                f"{server_error}"
+            )
+
+        # =========================================
+        # PARSE RESPONSE
+        # =========================================
+
+        try:
+
+            result = response.json()
+
+        except ValueError as error:
+
+            raise RuntimeError(
+                "PunksDB returned invalid JSON: "
+                f"{response.text[:1000]}"
+            ) from error
+
+        # =========================================
+        # SERVER REPORTED FAILURE
+        # =========================================
 
         if not result.get(
-            "success"
+            "success",
+            False
         ):
 
             raise RuntimeError(
                 result.get(
                     "error",
-                    "PunksDB request failed."
+                    result.get(
+                        "message",
+                        "PunksDB request failed."
+                    )
                 )
             )
+
+        # =========================================
+        # RETURN RESULT
+        # =========================================
 
         return result.get(
             "result"
