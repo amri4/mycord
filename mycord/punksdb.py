@@ -7,7 +7,7 @@ class PunksDB:
     def __init__(
         self,
         db_name="mycord_data.db",
-        server="http://node9.quaxly.com:25474"
+        server="http://free-bots.heavencloud.in:3272"
     ):
 
         self.db_name = db_name
