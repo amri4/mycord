@@ -4,31 +4,28 @@ import sqlite3
 
 class DB:
 
-    def __init__(
-        self,
-        db_name="mycord_data.db"
-    ):
+    def __init__(self):
         # 📂 Ensure the 'data' directory exists locally
-        folder_name = "data"
+        self.folder_name = "data"
 
-        if not os.path.exists(folder_name):
-            os.makedirs(
-                folder_name,
-                exist_ok=True
-            )
-
-        # 🔄 Force the database file path inside
-        # the 'data' folder
-        self.db_name = os.path.join(
-            folder_name,
-            db_name
+        os.makedirs(
+            self.folder_name,
+            exist_ok=True
         )
 
-        self.conn = sqlite3.connect(
-            self.db_name
+
+    def _get_connection(
+        self,
+        table
+    ):
+        db_path = os.path.join(
+            self.folder_name,
+            f"{table}.db"
         )
 
-        self.cursor = self.conn.cursor()
+        return sqlite3.connect(
+            db_path
+        )
 
 
     def create_table(
@@ -36,7 +33,10 @@ class DB:
         name,
         columns
     ):
-        self.cursor.execute(
+        conn = self._get_connection(name)
+        cursor = conn.cursor()
+
+        cursor.execute(
             f"""
             CREATE TABLE IF NOT EXISTS {name} (
                 {columns}
@@ -44,7 +44,8 @@ class DB:
             """
         )
 
-        self.conn.commit()
+        conn.commit()
+        conn.close()
 
 
     def add_column(
@@ -53,14 +54,18 @@ class DB:
         column,
         column_type
     ):
-        self.cursor.execute(
+        conn = self._get_connection(table)
+        cursor = conn.cursor()
+
+        cursor.execute(
             f"""
             ALTER TABLE {table}
             ADD COLUMN {column} {column_type}
             """
         )
 
-        self.conn.commit()
+        conn.commit()
+        conn.close()
 
 
     def insert(
@@ -69,11 +74,14 @@ class DB:
         columns,
         values
     ):
+        conn = self._get_connection(table)
+        cursor = conn.cursor()
+
         placeholders = ", ".join(
             ["?"] * len(values)
         )
 
-        self.cursor.execute(
+        cursor.execute(
             f"""
             INSERT INTO {table}
             ({columns})
@@ -82,7 +90,8 @@ class DB:
             values
         )
 
-        self.conn.commit()
+        conn.commit()
+        conn.close()
 
 
     def insert_replace(
@@ -91,11 +100,14 @@ class DB:
         columns,
         values
     ):
+        conn = self._get_connection(table)
+        cursor = conn.cursor()
+
         placeholders = ", ".join(
             ["?"] * len(values)
         )
 
-        self.cursor.execute(
+        cursor.execute(
             f"""
             INSERT OR REPLACE INTO {table}
             ({columns})
@@ -104,7 +116,8 @@ class DB:
             values
         )
 
-        self.conn.commit()
+        conn.commit()
+        conn.close()
 
 
     def fetchone(
@@ -113,28 +126,42 @@ class DB:
         condition=None,
         values=()
     ):
+        conn = self._get_connection(table)
+        cursor = conn.cursor()
+
         query = f"SELECT * FROM {table}"
 
         if condition:
             query += f" WHERE {condition}"
 
-        self.cursor.execute(
+        cursor.execute(
             query,
             values
         )
 
-        return self.cursor.fetchone()
+        result = cursor.fetchone()
+
+        conn.close()
+
+        return result
 
 
     def fetchall(
         self,
         table
     ):
-        self.cursor.execute(
+        conn = self._get_connection(table)
+        cursor = conn.cursor()
+
+        cursor.execute(
             f"SELECT * FROM {table}"
         )
 
-        return self.cursor.fetchall()
+        result = cursor.fetchall()
+
+        conn.close()
+
+        return result
 
 
     def update(
@@ -144,7 +171,10 @@ class DB:
         condition,
         values
     ):
-        self.cursor.execute(
+        conn = self._get_connection(table)
+        cursor = conn.cursor()
+
+        cursor.execute(
             f"""
             UPDATE {table}
             SET {set_values}
@@ -153,7 +183,8 @@ class DB:
             values
         )
 
-        self.conn.commit()
+        conn.commit()
+        conn.close()
 
 
     def delete(
@@ -162,7 +193,10 @@ class DB:
         condition,
         values
     ):
-        self.cursor.execute(
+        conn = self._get_connection(table)
+        cursor = conn.cursor()
+
+        cursor.execute(
             f"""
             DELETE FROM {table}
             WHERE {condition}
@@ -170,7 +204,8 @@ class DB:
             values
         )
 
-        self.conn.commit()
+        conn.commit()
+        conn.close()
 
 
     def exists(
@@ -179,7 +214,10 @@ class DB:
         condition,
         values
     ):
-        self.cursor.execute(
+        conn = self._get_connection(table)
+        cursor = conn.cursor()
+
+        cursor.execute(
             f"""
             SELECT 1
             FROM {table}
@@ -188,19 +226,21 @@ class DB:
             values
         )
 
-        return self.cursor.fetchone() is not None
+        result = cursor.fetchone() is not None
+
+        conn.close()
+
+        return result
 
 
     def drop_table(
         self,
         name
     ):
-        self.cursor.execute(
-            f"DROP TABLE IF EXISTS {name}"
+        db_path = os.path.join(
+            self.folder_name,
+            f"{name}.db"
         )
 
-        self.conn.commit()
-
-
-    def close(self):
-        self.conn.close()
+        if os.path.exists(db_path):
+            os.remove(db_path)
