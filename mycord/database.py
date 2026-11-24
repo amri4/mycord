@@ -1,3 +1,4 @@
+
 import os
 import sqlite3
 
@@ -5,7 +6,7 @@ import sqlite3
 class DB:
 
     def __init__(self):
-        # 📂 Ensure the 'data' directory exists locally
+        # Ensure the data directory exists
         self.folder_name = "data"
 
         os.makedirs(
@@ -14,229 +15,239 @@ class DB:
         )
 
 
-    def _get_connection(
-        self,
-        table
-    ):
+    def _get_connection(self, table):
         db_path = os.path.join(
             self.folder_name,
             f"{table}.db"
         )
 
-        return sqlite3.connect(
-            db_path
+        conn = sqlite3.connect(
+            db_path,
+            timeout=30
         )
 
+        try:
+            # Enable WAL mode for this database
+            conn.execute("PRAGMA journal_mode=WAL")
 
-    def create_table(
-        self,
-        name,
-        columns
-    ):
+            return conn
+
+        except Exception:
+            conn.close()
+            raise
+
+
+    def create_table(self, name, columns):
         conn = self._get_connection(name)
-        cursor = conn.cursor()
 
-        cursor.execute(
-            f"""
-            CREATE TABLE IF NOT EXISTS {name} (
-                {columns}
+        try:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                f"""
+                CREATE TABLE IF NOT EXISTS {name} (
+                    {columns}
+                )
+                """
             )
-            """
-        )
 
-        conn.commit()
-        conn.close()
+            conn.commit()
+
+        except Exception:
+            conn.rollback()
+            raise
+
+        finally:
+            conn.close()
 
 
-    def add_column(
-        self,
-        table,
-        column,
-        column_type
-    ):
+    def add_column(self, table, column, column_type):
         conn = self._get_connection(table)
-        cursor = conn.cursor()
 
-        cursor.execute(
-            f"""
-            ALTER TABLE {table}
-            ADD COLUMN {column} {column_type}
-            """
-        )
+        try:
+            cursor = conn.cursor()
 
-        conn.commit()
-        conn.close()
+            cursor.execute(
+                f"""
+                ALTER TABLE {table}
+                ADD COLUMN {column} {column_type}
+                """
+            )
+
+            conn.commit()
+
+        except Exception:
+            conn.rollback()
+            raise
+
+        finally:
+            conn.close()
 
 
-    def insert(
-        self,
-        table,
-        columns,
-        values
-    ):
+    def insert(self, table, columns, values):
         conn = self._get_connection(table)
-        cursor = conn.cursor()
 
-        placeholders = ", ".join(
-            ["?"] * len(values)
-        )
+        try:
+            cursor = conn.cursor()
 
-        cursor.execute(
-            f"""
-            INSERT INTO {table}
-            ({columns})
-            VALUES ({placeholders})
-            """,
-            values
-        )
+            placeholders = ", ".join(
+                ["?"] * len(values)
+            )
 
-        conn.commit()
-        conn.close()
+            cursor.execute(
+                f"""
+                INSERT INTO {table}
+                ({columns})
+                VALUES ({placeholders})
+                """,
+                values
+            )
+
+            conn.commit()
+
+        except Exception:
+            conn.rollback()
+            raise
+
+        finally:
+            conn.close()
 
 
-    def insert_replace(
-        self,
-        table,
-        columns,
-        values
-    ):
+    def insert_replace(self, table, columns, values):
         conn = self._get_connection(table)
-        cursor = conn.cursor()
 
-        placeholders = ", ".join(
-            ["?"] * len(values)
-        )
+        try:
+            cursor = conn.cursor()
 
-        cursor.execute(
-            f"""
-            INSERT OR REPLACE INTO {table}
-            ({columns})
-            VALUES ({placeholders})
-            """,
-            values
-        )
+            placeholders = ", ".join(
+                ["?"] * len(values)
+            )
 
-        conn.commit()
-        conn.close()
+            cursor.execute(
+                f"""
+                INSERT OR REPLACE INTO {table}
+                ({columns})
+                VALUES ({placeholders})
+                """,
+                values
+            )
+
+            conn.commit()
+
+        except Exception:
+            conn.rollback()
+            raise
+
+        finally:
+            conn.close()
 
 
-    def fetchone(
-        self,
-        table,
-        condition=None,
-        values=()
-    ):
+    def fetchone(self, table, condition=None, values=()):
         conn = self._get_connection(table)
-        cursor = conn.cursor()
 
-        query = f"SELECT * FROM {table}"
+        try:
+            cursor = conn.cursor()
 
-        if condition:
-            query += f" WHERE {condition}"
+            query = f"SELECT * FROM {table}"
 
-        cursor.execute(
-            query,
-            values
-        )
+            if condition:
+                query += f" WHERE {condition}"
 
-        result = cursor.fetchone()
+            cursor.execute(query, values)
 
-        conn.close()
+            return cursor.fetchone()
 
-        return result
+        finally:
+            conn.close()
 
 
-    def fetchall(
-        self,
-        table
-    ):
+    def fetchall(self, table):
         conn = self._get_connection(table)
-        cursor = conn.cursor()
 
-        cursor.execute(
-            f"SELECT * FROM {table}"
-        )
+        try:
+            cursor = conn.cursor()
 
-        result = cursor.fetchall()
+            cursor.execute(
+                f"SELECT * FROM {table}"
+            )
 
-        conn.close()
+            return cursor.fetchall()
 
-        return result
+        finally:
+            conn.close()
 
 
-    def update(
-        self,
-        table,
-        set_values,
-        condition,
-        values
-    ):
+    def update(self, table, set_values, condition, values):
         conn = self._get_connection(table)
-        cursor = conn.cursor()
 
-        cursor.execute(
-            f"""
-            UPDATE {table}
-            SET {set_values}
-            WHERE {condition}
-            """,
-            values
-        )
+        try:
+            cursor = conn.cursor()
 
-        conn.commit()
-        conn.close()
+            cursor.execute(
+                f"""
+                UPDATE {table}
+                SET {set_values}
+                WHERE {condition}
+                """,
+                values
+            )
+
+            conn.commit()
+
+        except Exception:
+            conn.rollback()
+            raise
+
+        finally:
+            conn.close()
 
 
-    def delete(
-        self,
-        table,
-        condition,
-        values
-    ):
+    def delete(self, table, condition, values):
         conn = self._get_connection(table)
-        cursor = conn.cursor()
 
-        cursor.execute(
-            f"""
-            DELETE FROM {table}
-            WHERE {condition}
-            """,
-            values
-        )
+        try:
+            cursor = conn.cursor()
 
-        conn.commit()
-        conn.close()
+            cursor.execute(
+                f"""
+                DELETE FROM {table}
+                WHERE {condition}
+                """,
+                values
+            )
+
+            conn.commit()
+
+        except Exception:
+            conn.rollback()
+            raise
+
+        finally:
+            conn.close()
 
 
-    def exists(
-        self,
-        table,
-        condition,
-        values
-    ):
+    def exists(self, table, condition, values):
         conn = self._get_connection(table)
-        cursor = conn.cursor()
 
-        cursor.execute(
-            f"""
-            SELECT 1
-            FROM {table}
-            WHERE {condition}
-            """,
-            values
-        )
+        try:
+            cursor = conn.cursor()
 
-        result = cursor.fetchone() is not None
+            cursor.execute(
+                f"""
+                SELECT 1
+                FROM {table}
+                WHERE {condition}
+                """,
+                values
+            )
 
-        conn.close()
+            return cursor.fetchone() is not None
 
-        return result
+        finally:
+            conn.close()
 
 
-    def drop_table(
-        self,
-        name
-    ):
+    def drop_table(self, name):
         db_path = os.path.join(
             self.folder_name,
             f"{name}.db"
