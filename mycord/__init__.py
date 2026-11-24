@@ -19,6 +19,7 @@ import sys
 import requests
 import subprocess
 
+
 # ==============================================================================
 # 🚀 AUTOMATIC WORKSPACE GENERATOR & SYNC ENGINE
 # ==============================================================================
@@ -34,6 +35,7 @@ if not os.path.exists(txt_path):
         f.write(
             "github_username=YOUR_USERNAME\n"
             "github_repo=YOUR_REPO_NAME\n"
+            "github_branch=main\n"
             "ignore_files=setup.txt,.env,setup.py,data\n"
         )
     print("✨ [Mycord] Generated setup.txt in your file manager.")
@@ -59,69 +61,132 @@ with open("setup.txt", "r", encoding="utf-8") as f:
 
 username = config.get("github_username")
 repo = config.get("github_repo")
-ignore_files = [x.strip() for x in config.get("ignore_files", "").split(",") if x.strip()]
+branch = config.get("github_branch", "main")
+ignore_files = [
+    x.strip()
+    for x in config.get("ignore_files", "").split(",")
+    if x.strip()
+]
 
-if not username or username == "YOUR_USERNAME" or not repo or repo == "YOUR_REPO_NAME":
+if (
+    not username
+    or username == "YOUR_USERNAME"
+    or not repo
+    or repo == "YOUR_REPO_NAME"
+):
     print("❌ Please configure your GitHub details inside setup.txt first!")
     sys.exit(1)
 
-print(f"🔄 Pulling latest files from {username}/{repo}...")
-api_url = f"https://api.github.com/repos/{username}/{repo}/git/trees/HEAD?recursive=1"
+print(f"🔄 Pulling latest files from {username}/{repo} ({branch})...")
+
+api_url = (
+    f"https://api.github.com/repos/"
+    f"{username}/{repo}/git/trees/{branch}?recursive=1"
+)
 
 try:
-    res = requests.get(api_url)
+    res = requests.get(api_url, timeout=30)
+
     if res.status_code == 200:
         data = res.json()
+
+        if data.get("truncated"):
+            print("⚠️ GitHub repository tree is truncated. Sync aborted.")
+            sys.exit(1)
+
         github_files = set()
-        
+
         # 📥 Phase 1: Download new files and overwrite changed files
         for item in data.get("tree", []):
             if item.get("type") == "blob":
                 path = item["path"]
-                github_files.add(path) # Keep track of what exists on GitHub
-                
-                if any(path == ignored or path.startswith(ignored.rstrip("/") + "/") for ignored in ignore_files):
+                github_files.add(path)
+
+                if any(
+                    path == ignored
+                    or path.startswith(ignored.rstrip("/") + "/")
+                    for ignored in ignore_files
+                ):
                     continue
-                    
+
                 folder = os.path.dirname(path)
+
                 if folder:
                     os.makedirs(folder, exist_ok=True)
-                    
-                raw_url = f"https://raw.githubusercontent.com/{username}/{repo}/HEAD/{path}"
-                file_res = requests.get(raw_url)
+
+                raw_url = (
+                    f"https://raw.githubusercontent.com/"
+                    f"{username}/{repo}/{branch}/{path}"
+                )
+
+                file_res = requests.get(raw_url, timeout=30)
+
                 if file_res.status_code == 200:
                     with open(path, "wb") as f_out:
                         f_out.write(file_res.content)
-                        
+
+                else:
+                    print(f"⚠️ Failed to download {path}: {file_res.status_code}")
+
         # 🗑️ Phase 2: Delete local files that were removed from GitHub
-        # Core safeguards: never touch settings, tokens, or local databases
-        protected_files = {"setup.txt", ".env", "setup.py", "data"}
+        protected_files = {
+            "setup.txt",
+            ".env",
+            "setup.py",
+            "data"
+        }
+
         for ignored in ignore_files:
             protected_files.add(ignored)
-            
+
         for root, dirs, files in os.walk("."):
-            # Skip hidden system folders (e.g., .cache, .local)
+            # Skip hidden system folders
             if any(part.startswith('.') for part in root.split(os.sep)):
+                dirs[:] = []
                 continue
-                
+
+            # Skip hidden directories
+            dirs[:] = [
+                d for d in dirs
+                if not d.startswith(".")
+            ]
+
             for file in files:
-                # Format the local path to match GitHub tree format
-                local_path = os.path.relpath(os.path.join(root, file), ".").replace("\\", "/")
-                
-                # If the file isn't on GitHub and isn't protected locally, delete it!
-                if local_path not in github_files and local_path not in protected_files:
+                local_path = os.path.relpath(
+                    os.path.join(root, file),
+                    "."
+                ).replace("\\", "/")
+
+                if (
+                    local_path not in github_files
+                    and local_path not in protected_files
+                    and not any(
+                        local_path == ignored
+                        or local_path.startswith(ignored.rstrip("/") + "/")
+                        for ignored in protected_files
+                    )
+                ):
                     try:
                         os.remove(local_path)
-                        print(f"🗑️ [Mycord Sync] Deleted local file (removed from repo): {local_path}")
+                        print(
+                            f"🗑️ [Mycord Sync] Deleted local file "
+                            f"(removed from repo): {local_path}"
+                        )
                     except Exception as e:
                         print(f"⚠️ Could not delete {local_path}: {e}")
-                        
+
         print("✅ Sync complete!")
+
+    else:
+        print(f"⚠️ GitHub API error: {res.status_code}")
+        print(res.text)
+
 except Exception as e:
     print(f"⚠️ Sync failed: {e}")
 """
     with open(py_path, "w", encoding="utf-8") as f:
         f.write(setup_script_content)
+
     print("✨ [Mycord] Generated setup.py in your file manager.")
     created_any = True
 
@@ -134,6 +199,7 @@ if created_any:
 # ==============================================================================
 if os.environ.get("MYCORD_SYNCED") != "true":
     config = {}
+
     with open(txt_path, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
@@ -144,16 +210,23 @@ if os.environ.get("MYCORD_SYNCED") != "true":
     username = config.get("github_username")
     repo = config.get("github_repo")
 
-    if username and username != "YOUR_USERNAME" and repo and repo != "YOUR_REPO_NAME":
+    if (
+        username
+        and username != "YOUR_USERNAME"
+        and repo
+        and repo != "YOUR_REPO_NAME"
+    ):
         try:
             if "setup" in sys.modules:
                 del sys.modules["setup"]
+
             import setup
+
         except Exception as e:
             print(f"⚠️ [Mycord] Sync script error: {e}. Booting local files...")
 
     os.environ["MYCORD_SYNCED"] = "true"
-    
+
     print("🤖 [Mycord] Launching bot with updated files...")
     subprocess.run([sys.executable, "main.py"])
     sys.exit(0)
